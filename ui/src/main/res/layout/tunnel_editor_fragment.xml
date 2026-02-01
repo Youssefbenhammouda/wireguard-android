@@ -238,10 +238,56 @@
                                 android:imeOptions="actionDone"
                                 android:inputType="number"
                                 android:nextFocusUp="@id/listen_port_text"
-                                android:nextFocusDown="@id/set_excluded_applications"
-                                android:nextFocusForward="@id/set_excluded_applications"
+                                android:nextFocusDown="@id/wstunnel_text"
+                                android:nextFocusForward="@id/wstunnel_text"
                                 android:text="@={config.interface.mtu}"
                                 android:textAlignment="center" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/wstunnel_label_layout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="4dp"
+                            android:hint="@string/wstunnel_command_label"
+                            app:helperText="@string/wstunnel_command_helper"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/mtu_label_layout">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/wstunnel_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionNext"
+                                android:inputType="textNoSuggestions|textVisiblePassword"
+                                android:nextFocusUp="@id/mtu_text"
+                                android:nextFocusDown="@id/wstunnel_host_text"
+                                android:nextFocusForward="@id/wstunnel_host_text"
+                                android:text="@={config.interface.wstunnel}" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/wstunnel_host_label_layout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="4dp"
+                            android:hint="@string/wstunnel_host_label"
+                            app:helperText="@string/wstunnel_host_helper"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/wstunnel_label_layout">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/wstunnel_host_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionDone"
+                                android:inputType="textNoSuggestions|textVisiblePassword"
+                                android:nextFocusUp="@id/wstunnel_text"
+                                android:nextFocusDown="@id/set_excluded_applications"
+                                android:nextFocusForward="@id/set_excluded_applications"
+                                android:text="@={config.interface.wstunnelHost}" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.button.MaterialButton
@@ -250,7 +296,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_margin="4dp"
-                            android:nextFocusUp="@id/dns_servers_text"
+                            android:nextFocusUp="@id/wstunnel_host_text"
                             android:nextFocusDown="@id/peers_layout"
                             android:nextFocusForward="@id/peers_layout"
                             android:onClick="@{fragment::onRequestSetExcludedIncludedApplications}"
@@ -259,7 +305,7 @@
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/mtu_label_layout"
+                            app:layout_constraintTop_toBottomOf="@id/wstunnel_host_label_layout"
                             app:rippleColor="?attr/colorSecondary"
                             tools:text="4 excluded applications" />
                     </androidx.constraintlayout.widget.ConstraintLayout>

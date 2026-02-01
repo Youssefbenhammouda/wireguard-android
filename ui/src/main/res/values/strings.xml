@@ -66,7 +66,7 @@
     <string name="allow_remote_control_intents_summary_on">External apps may toggle tunnels (advanced)</string>
     <string name="allow_remote_control_intents_title">Allow remote control apps</string>
     <string name="allowed_ips">Allowed IPs</string>
-    <string name="app_name" translatable="false">WireGuard</string>
+    <string name="app_name" translatable="false">WireGuard with wstunnel</string>
     <string name="bad_config_context">%1$s\'s %2$s</string>
     <string name="bad_config_context_top_level">%s</string>
     <string name="bad_config_error">%1$s in %2$s</string>
@@ -166,6 +166,10 @@
     <string name="module_installer_working">Downloading and installing…</string>
     <string name="module_version_error">Unable to determine kernel module version</string>
     <string name="mtu">MTU</string>
+    <string name="wstunnel_command_label">WSTunnel command</string>
+    <string name="wstunnel_command_helper">Optional. Full command line. Must start with the executable name.</string>
+    <string name="wstunnel_host_label">WSTunnel host</string>
+    <string name="wstunnel_host_helper">Optional. Hostname/IP that should be excluded from AllowedIPs at connect time (Part 2).</string>
     <string name="multiple_tunnels_summary_off">Turning on one tunnel will turn off others</string>
     <string name="multiple_tunnels_summary_on">Multiple tunnels may be turned on simultaneously</string>
     <string name="multiple_tunnels_title">Allow multiple simultaneous tunnels</string>

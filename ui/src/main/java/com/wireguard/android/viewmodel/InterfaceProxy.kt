@@ -54,6 +54,20 @@ class InterfaceProxy : BaseObservable, Parcelable {
         }
 
     @get:Bindable
+    var wstunnel: String = ""
+        set(value) {
+            field = value
+            notifyPropertyChanged(BR.wstunnel)
+        }
+
+    @get:Bindable
+    var wstunnelHost: String = ""
+        set(value) {
+            field = value
+            notifyPropertyChanged(BR.wstunnelHost)
+        }
+
+    @get:Bindable
     var privateKey: String = ""
         set(value) {
             field = value
@@ -76,6 +90,8 @@ class InterfaceProxy : BaseObservable, Parcelable {
         parcel.readStringList(includedApplications)
         listenPort = parcel.readString() ?: ""
         mtu = parcel.readString() ?: ""
+        wstunnel = parcel.readString() ?: ""
+        wstunnelHost = parcel.readString() ?: ""
         privateKey = parcel.readString() ?: ""
     }
 
@@ -87,6 +103,8 @@ class InterfaceProxy : BaseObservable, Parcelable {
         includedApplications.addAll(other.includedApplications)
         listenPort = other.listenPort.map { it.toString() }.orElse("")
         mtu = other.mtu.map { it.toString() }.orElse("")
+        wstunnel = other.wstunnel ?: ""
+        wstunnelHost = other.wstunnelHost ?: ""
         val keyPair = other.keyPair
         privateKey = keyPair.privateKey.toBase64()
     }
@@ -111,6 +129,8 @@ class InterfaceProxy : BaseObservable, Parcelable {
         if (includedApplications.isNotEmpty()) builder.includeApplications(includedApplications)
         if (listenPort.isNotEmpty()) builder.parseListenPort(listenPort)
         if (mtu.isNotEmpty()) builder.parseMtu(mtu)
+        if (wstunnel.isNotEmpty()) builder.parseWstunnel(wstunnel)
+        if (wstunnelHost.isNotEmpty()) builder.parseWstunnelHost(wstunnelHost)
         if (privateKey.isNotEmpty()) builder.parsePrivateKey(privateKey)
         return builder.build()
     }
@@ -122,6 +142,8 @@ class InterfaceProxy : BaseObservable, Parcelable {
         dest.writeStringList(includedApplications)
         dest.writeString(listenPort)
         dest.writeString(mtu)
+        dest.writeString(wstunnel)
+        dest.writeString(wstunnelHost)
         dest.writeString(privateKey)
     }
 

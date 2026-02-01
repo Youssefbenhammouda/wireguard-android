@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 import androidx.annotation.Nullable;
 
-/**
+/** 
  * Represents the configuration for a WireGuard interface (an [Interface] block). Interfaces must
  * have a private key (used to initialize a {@code KeyPair}), and may optionally have several other
  * attributes.
@@ -46,6 +46,8 @@ public final class Interface {
     private final KeyPair keyPair;
     private final Optional<Integer> listenPort;
     private final Optional<Integer> mtu;
+    @Nullable private final String wstunnel;
+    @Nullable private final String wstunnelHost;
 
     private Interface(final Builder builder) {
         // Defensively copy to ensure immutability even if the Builder is reused.
@@ -57,6 +59,8 @@ public final class Interface {
         keyPair = Objects.requireNonNull(builder.keyPair, "Interfaces must have a private key");
         listenPort = builder.listenPort;
         mtu = builder.mtu;
+        wstunnel = builder.wstunnel;
+        wstunnelHost = builder.wstunnelHost;
     }
 
     /**
@@ -95,6 +99,12 @@ public final class Interface {
                 case "privatekey":
                     builder.parsePrivateKey(attribute.getValue());
                     break;
+                case "wstunnel":
+                    builder.parseWstunnel(attribute.getValue());
+                    break;
+                case "wstunnel_host":
+                    builder.parseWstunnelHost(attribute.getValue());
+                    break;
                 default:
                     throw new BadConfigException(Section.INTERFACE, Location.TOP_LEVEL,
                             Reason.UNKNOWN_ATTRIBUTE, attribute.getKey());
@@ -115,7 +125,9 @@ public final class Interface {
                 && includedApplications.equals(other.includedApplications)
                 && keyPair.equals(other.keyPair)
                 && listenPort.equals(other.listenPort)
-                && mtu.equals(other.mtu);
+            && mtu.equals(other.mtu)
+            && Objects.equals(wstunnel, other.wstunnel)
+            && Objects.equals(wstunnelHost, other.wstunnelHost);
     }
 
     /**
@@ -195,6 +207,26 @@ public final class Interface {
         return mtu;
     }
 
+    /**
+     * Returns the WSTunnel identifier associated with the interface.
+     *
+     * @return the WSTunnel identifier, or {@code null} if none is configured
+     */
+    @Nullable
+    public String getWstunnel() {
+        return wstunnel;
+    }
+
+    /**
+     * Returns the WSTunnel host associated with the interface.
+     *
+     * @return the WSTunnel host, or {@code null} if none is configured
+     */
+    @Nullable
+    public String getWstunnelHost() {
+        return wstunnelHost;
+    }
+
     @Override
     public int hashCode() {
         int hash = 1;
@@ -205,6 +237,8 @@ public final class Interface {
         hash = 31 * hash + keyPair.hashCode();
         hash = 31 * hash + listenPort.hashCode();
         hash = 31 * hash + mtu.hashCode();
+        hash = 31 * hash + Objects.hashCode(wstunnel);
+        hash = 31 * hash + Objects.hashCode(wstunnelHost);
         return hash;
     }
 
@@ -244,6 +278,10 @@ public final class Interface {
             sb.append("IncludedApplications = ").append(Attribute.join(includedApplications)).append('\n');
         listenPort.ifPresent(lp -> sb.append("ListenPort = ").append(lp).append('\n'));
         mtu.ifPresent(m -> sb.append("MTU = ").append(m).append('\n'));
+        if (wstunnel != null && !wstunnel.isBlank())
+            sb.append("wstunnel = ").append(wstunnel).append('\n');
+        if (wstunnelHost != null && !wstunnelHost.isBlank())
+            sb.append("wstunnel_host = ").append(wstunnelHost).append('\n');
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
         return sb.toString();
     }
@@ -279,6 +317,10 @@ public final class Interface {
         private Optional<Integer> listenPort = Optional.empty();
         // Defaults to not present.
         private Optional<Integer> mtu = Optional.empty();
+        // Defaults to not present.
+        @Nullable private String wstunnel;
+        // Defaults to not present.
+        @Nullable private String wstunnelHost;
 
         public Builder addAddress(final InetNetwork address) {
             addresses.add(address);
@@ -399,6 +441,14 @@ public final class Interface {
             }
         }
 
+        public Builder parseWstunnel(@Nullable final String wstunnel) {
+            return setWstunnel(normalizeOptionalValue(wstunnel));
+        }
+
+        public Builder parseWstunnelHost(@Nullable final String wstunnelHost) {
+            return setWstunnelHost(normalizeOptionalValue(wstunnelHost));
+        }
+
         public Builder setKeyPair(final KeyPair keyPair) {
             this.keyPair = keyPair;
             return this;
@@ -418,6 +468,22 @@ public final class Interface {
                         Reason.INVALID_VALUE, String.valueOf(mtu));
             this.mtu = mtu == 0 ? Optional.empty() : Optional.of(mtu);
             return this;
+        }
+
+        public Builder setWstunnel(@Nullable final String wstunnel) {
+            this.wstunnel = wstunnel;
+            return this;
+        }
+
+        public Builder setWstunnelHost(@Nullable final String wstunnelHost) {
+            this.wstunnelHost = wstunnelHost;
+            return this;
+        }
+
+        private static @Nullable String normalizeOptionalValue(@Nullable final String value) {
+            if (value == null)
+                return null;
+            return value.isBlank() ? null : value;
         }
     }
 }

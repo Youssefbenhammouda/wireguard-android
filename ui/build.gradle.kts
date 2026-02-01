@@ -2,8 +2,11 @@
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URL
+import java.security.MessageDigest
 
 val pkg: String = providers.gradleProperty("wireguardPackageName").get()
+val namespacePkg: String = providers.gradleProperty("wireguardNamespace").orNull ?: "com.wireguard.android"
 
 plugins {
     alias(libs.plugins.android.application)
@@ -18,7 +21,8 @@ android {
         dataBinding = true
         viewBinding = true
     }
-    namespace = pkg
+    namespace = namespacePkg
+    sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("generated/jniLibs"))
     defaultConfig {
         applicationId = pkg
         minSdk = 24
@@ -57,6 +61,11 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
     lint {
         disable += "LongLogTag"
         warning += "MissingTranslation"
@@ -90,4 +99,79 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget = JvmTarget.JVM_17
+}
+
+val wstunnelArm64TarUrl = providers.gradleProperty("wstunnelArm64TarUrl").orNull
+val wstunnelChecksumsUrl = providers.gradleProperty("wstunnelChecksumsUrl").orNull
+val wstunnelArm64Sha256 = providers.gradleProperty("wstunnelArm64Sha256").orNull
+val wstunnelArm64ExecutableName = providers.gradleProperty("wstunnelArm64ExecutableName").orNull
+val buildDirFile = layout.buildDirectory.get().asFile
+
+fun sha256Of(file: java.io.File): String {
+    val md = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { input ->
+        val buf = ByteArray(8192)
+        var read = input.read(buf)
+        while (read > 0) {
+            md.update(buf, 0, read)
+            read = input.read(buf)
+        }
+    }
+    return md.digest().joinToString("") { "%02x".format(it) }
+}
+
+val downloadWstunnelLibs = tasks.register("downloadWstunnelLibs") {
+    description = "Download embedded wstunnel libs into build/generated/jniLibs"
+    group = "build setup"
+    doLast {
+        val tarUrl = wstunnelArm64TarUrl ?: throw GradleException("Missing gradle property: wstunnelArm64TarUrl")
+        val checksumsUrl = wstunnelChecksumsUrl
+
+        val tarFile = file("$buildDirFile/tmp/wstunnel/wstunnel_android_arm64.tar.gz")
+        tarFile.parentFile.mkdirs()
+
+        URL(tarUrl).openStream().use { input: java.io.InputStream ->
+            tarFile.outputStream().use { output: java.io.OutputStream ->
+                input.copyTo(output)
+            }
+        }
+
+        val expectedSha = if (!wstunnelArm64Sha256.isNullOrBlank()) {
+            wstunnelArm64Sha256
+        } else {
+            val url = checksumsUrl ?: throw GradleException("Missing gradle property: wstunnelChecksumsUrl (or set wstunnelArm64Sha256)")
+            val checksumsText = URL(url).readText()
+            val tarName = tarUrl.substringAfterLast('/')
+            val line = checksumsText.lineSequence().firstOrNull { it.contains(tarName) }
+                ?: throw GradleException("Checksum for $tarName not found in checksums.txt")
+            line.trim().split(Regex("\\s+")).firstOrNull()
+                ?: throw GradleException("Malformed checksum line for $tarName")
+        }
+
+        val actualSha = sha256Of(tarFile)
+        if (!actualSha.equals(expectedSha, ignoreCase = true)) {
+            tarFile.delete()
+            throw GradleException("wstunnel arm64 sha256 mismatch. expected=$expectedSha actual=$actualSha")
+        }
+
+        val extractDir = file("$buildDirFile/tmp/wstunnel/extracted")
+        extractDir.deleteRecursively()
+        extractDir.mkdirs()
+        copy {
+            from(tarTree(resources.gzip(tarFile)))
+            into(extractDir)
+        }
+
+        val exeName = wstunnelArm64ExecutableName ?: "libwstunnel.so"
+        val foundLib = extractDir.walkTopDown().firstOrNull { it.name == exeName }
+            ?: throw GradleException("$exeName not found in $tarFile")
+
+        val outDir = file("$buildDirFile/generated/jniLibs/arm64-v8a")
+        outDir.mkdirs()
+        foundLib.copyTo(file("$buildDirFile/generated/jniLibs/arm64-v8a/libwstunnel.so"), overwrite = true)
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(downloadWstunnelLibs)
 }

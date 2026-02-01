@@ -22,9 +22,12 @@ import com.wireguard.android.backend.Tunnel
 import com.wireguard.android.configStore.ConfigStore
 import com.wireguard.android.databinding.ObservableSortedKeyedArrayList
 import com.wireguard.android.util.ErrorMessages
+import com.wireguard.android.util.AllowedIpsSubtractor
 import com.wireguard.android.util.UserKnobs
 import com.wireguard.android.util.applicationScope
+import com.wireguard.android.wstunnel.WstunnelRunner
 import com.wireguard.config.Config
+import java.net.UnknownHostException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -198,7 +201,33 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
         var newState = tunnel.state
         var throwable: Throwable? = null
         try {
-            newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, tunnel.getConfigAsync()) }
+            val config = if (state == Tunnel.State.UP) {
+                val loaded = tunnel.getConfigAsync()
+                try {
+                    AllowedIpsSubtractor.applyIfNeeded(loaded)
+                } catch (e: UnknownHostException) {
+                    throw IllegalArgumentException("wstunnel_host DNS failed: ${e.message}", e)
+                }
+            } else {
+                null
+            }
+            if (state == Tunnel.State.UP) {
+                val wstunnelCmd = config?.`interface`?.wstunnel?.trim().orEmpty()
+                if (wstunnelCmd.isNotEmpty())
+                    WstunnelRunner.startIfNeeded(context, tunnel.name, wstunnelCmd)
+                try {
+                    newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, config) }
+                } catch (e: Throwable) {
+                    WstunnelRunner.stop(tunnel.name)
+                    throw e
+                }
+            } else {
+                try {
+                    newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, null) }
+                } finally {
+                    WstunnelRunner.stop(tunnel.name)
+                }
+            }
             if (newState == Tunnel.State.UP)
                 lastUsedTunnel = tunnel
         } catch (e: Throwable) {

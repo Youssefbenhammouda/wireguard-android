@@ -82,6 +82,8 @@ class LogViewerActivity : AppCompatActivity() {
 
     private val warningColor by lazy { ResourcesCompat.getColor(resources, R.color.warning_tag_color, theme) }
 
+    private val wstunnelColor by lazy { ResourcesCompat.getColor(resources, R.color.wstunnel_tag_color, theme) }
+
     private var lastUri: Uri? = null
 
     private fun revokeLastUri() {
@@ -294,6 +296,7 @@ class LogViewerActivity : AppCompatActivity() {
         private val THREADTIME_LINE: Pattern =
             Pattern.compile("^(\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3})(?:\\s+[0-9A-Za-z]+)?\\s+(\\d+)\\s+(\\d+)\\s+([A-Z])\\s+(.+?)\\s*: (.*)$")
         private val LOGS: MutableMap<String, ByteArray> = ConcurrentHashMap()
+        private const val WSTUNNEL_TAG = "WGSTunnel/AllowedIPs"
         private const val TAG = "WireGuard/LogViewerActivity"
     }
 
@@ -301,7 +304,9 @@ class LogViewerActivity : AppCompatActivity() {
 
         private inner class ViewHolder(val layout: View, var isSingleLine: Boolean = true) : RecyclerView.ViewHolder(layout)
 
-        private fun levelToColor(level: String): Int {
+        private fun tagToColor(tag: String, level: String): Int {
+            if (tag == WSTUNNEL_TAG)
+                return wstunnelColor
             return when (level) {
                 "V", "D" -> debugColor
                 "E" -> errorColor
@@ -327,7 +332,7 @@ class LogViewerActivity : AppCompatActivity() {
                 SpannableString("${line.tag}: ${line.msg}").apply {
                     setSpan(StyleSpan(BOLD), 0, "${line.tag}:".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                     setSpan(
-                        ForegroundColorSpan(levelToColor(line.level)),
+                        ForegroundColorSpan(tagToColor(line.tag, line.level)),
                         0, "${line.tag}:".length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
                 }
