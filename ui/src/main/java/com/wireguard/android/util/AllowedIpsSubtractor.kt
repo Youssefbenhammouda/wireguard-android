@@ -37,7 +37,7 @@ object AllowedIpsSubtractor {
         if (resolvedIps.isEmpty()) {
             throw UnknownHostException("wstunnel_host resolved to empty: $host")
         }
-        Log.i(TAG, "Resolved wstunnel_host=$host to ${resolvedIps.joinToString(",") { it.hostAddress }}")
+        Log.i(TAG, "Resolved wstunnel_host=$host to ${resolvedIps.joinToString(",") { it.hostAddress.orEmpty() }}")
 
         val newPeers = original.peers.map { peer ->
             val adjusted = subtractMany(peer.allowedIps, resolvedIps)

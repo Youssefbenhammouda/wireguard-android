@@ -204,7 +204,7 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
             val config = if (state == Tunnel.State.UP) {
                 val loaded = tunnel.getConfigAsync()
                 try {
-                    AllowedIpsSubtractor.applyIfNeeded(loaded)
+                    withContext(Dispatchers.IO) { AllowedIpsSubtractor.applyIfNeeded(loaded) }
                 } catch (e: UnknownHostException) {
                     throw IllegalArgumentException("wstunnel_host DNS failed: ${e.message}", e)
                 }
@@ -214,18 +214,18 @@ class TunnelManager(private val configStore: ConfigStore) : BaseObservable() {
             if (state == Tunnel.State.UP) {
                 val wstunnelCmd = config?.`interface`?.wstunnel?.trim().orEmpty()
                 if (wstunnelCmd.isNotEmpty())
-                    WstunnelRunner.startIfNeeded(context, tunnel.name, wstunnelCmd)
+                    withContext(Dispatchers.IO) { WstunnelRunner.startIfNeeded(context, tunnel.name, wstunnelCmd) }
                 try {
                     newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, config) }
                 } catch (e: Throwable) {
-                    WstunnelRunner.stop(tunnel.name)
+                    withContext(Dispatchers.IO) { WstunnelRunner.stop(tunnel.name) }
                     throw e
                 }
             } else {
                 try {
                     newState = withContext(Dispatchers.IO) { getBackend().setState(tunnel, state, null) }
                 } finally {
-                    WstunnelRunner.stop(tunnel.name)
+                    withContext(Dispatchers.IO) { WstunnelRunner.stop(tunnel.name) }
                 }
             }
             if (newState == Tunnel.State.UP)
